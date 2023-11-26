@@ -56,8 +56,12 @@ function Get-GithubRepo {
             Write-Host "Extracting ZIP to temporary folder: $tempExtractionPath"
             Expand-Archive -LiteralPath $tempFile -DestinationPath $tempExtractionPath -Force
 
-            Write-Host "Moving contents to $DestinationPath"
-            Get-ChildItem -Path $tempExtractionPath -Recurse | Move-Item -Destination $DestinationPath -Force
+            # Attempt to get only content
+            $rootFolder = Get-ChildItem -Path $tempExtractionPath | Where-Object { $_.PSIsContainer } | Select-Object -First 1
+            if ($rootFolder) {
+                Write-Host "Moving contents from $rootFolder to $DestinationPath"
+                Get-ChildItem -Path $rootFolder.FullName -Recurse | Move-Item -Destination $DestinationPath -Force
+            }
 
             Write-Host "Cleaning up temporary files."
             Remove-Item -Path $tempFile
@@ -75,6 +79,7 @@ function Get-GithubRepo {
         return $null
     }
 }
+
 
 
 function Add-FolderPathToEnvPath {
@@ -154,7 +159,7 @@ if (-not (Test-Path -Path $destinationPath)) {
 }
 
 # Installation Process (Get release, Download, Install)
-if ($Force -or (Get-UserConfirmation "Proceed with installation for $Repo? (Y/N)")) {
+if ($Force -or (Get-UserConfirmation "Proceed with installation for $Repo? (Y/N), this will download the latest release of the app from github")) {
     $latestRelease = Get-GithubRelease -Repo $Repo
 
     if ($latestRelease) {
