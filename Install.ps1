@@ -52,11 +52,16 @@ function Get-GithubRepo {
             Write-Host "Downloading ZIP to temporary folder: $tempFile"
             Invoke-WebRequest -Uri $downloadUrl -OutFile $tempFile
 
-            Write-Host "Extracting ZIP to $DestinationPath"
-            Expand-Archive -LiteralPath $tempFile -DestinationPath $DestinationPath -Force
+            $tempExtractionPath = New-Item -ItemType Directory -Path (Join-Path $tempPath ([System.IO.Path]::GetRandomFileName())) -Force
+            Write-Host "Extracting ZIP to temporary folder: $tempExtractionPath"
+            Expand-Archive -LiteralPath $tempFile -DestinationPath $tempExtractionPath -Force
 
-            Write-Host "Cleaning up temporary file."
+            Write-Host "Moving contents to $DestinationPath"
+            Get-ChildItem -Path $tempExtractionPath -Recurse | Move-Item -Destination $DestinationPath -Force
+
+            Write-Host "Cleaning up temporary files."
             Remove-Item -Path $tempFile
+            Remove-Item -Path $tempExtractionPath -Recurse -Force
 
             return $DestinationPath
         }
@@ -168,3 +173,4 @@ if ($latestRelease -and ($Force -or (Get-UserConfirmation "Do you want to add $d
 if ($Force -or (Get-UserConfirmation "Do you want to create a WezTerm Yazi shortcut on your desktop? (Y/N)")) {
     Create-WeztermYaziShortcut
 }
+Write-Host "You need to restart you shell to Access Yazi"

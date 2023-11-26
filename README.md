@@ -3,10 +3,9 @@ This repo include the scripts i use to make [yazi](https://github.com/sxyazi/yaz
 
 # 🔖 Prerequisite
 
-- File ( from git for mimetype) ,
+- File ( from git for mimetype) ! All is mentionned on the [Installation Guide](https://github.com/sxyazi/yazi/wiki/Windows-Installation-Guide)
 - Wezterm for terminal image preview : [wezterm](https://wezfurlong.org/wezterm/) 
 - Pwsh aka Powershell Core or you will need to replace pwsh.exe by powershell.exe on every script
-All is mentionned on the [Installation Guide](https://github.com/sxyazi/yazi/wiki/Windows-Installation-Guide) 
 
 # 🪄 Yazi Installation Script
 
@@ -20,10 +19,10 @@ The icon is created With default wezterm path from `winget` installation, if you
 Open powershell and run
 
 ```powershell
-iex (Invoke-WebRequest -Uri 'https://raw.githubusercontent.com/PaysanCorrezien/Yazi-Windows/main/install.ps1' -UseBasicParsing).Content
+iex (Invoke-WebRequest -Uri 'https://raw.githubusercontent.com/PaysanCorrezien/Yazi-Windows/master/install.ps1' -UseBasicParsing).Content
 ```
 
-*Always check script before running it from a random repo like mine*
+** Always check script before running it from a random repo like mine **
 
 _Maybe adding the copy of the preset from [repo](https://github.com/sxyazi/yazi/tree/main/yazi-config/preset) would be good_
 
@@ -36,7 +35,7 @@ This repo include multiple script that offer some functionnality that are realy 
 - Open powershell in current dir as admin ( UAC will prompt ! )
 - Drag and drop one or multiple files
 - Open explorer in current working directory
- 
+
 And one more that i like a lot and is working perfectly for my use case :
 - Open In WSLTmux , which create a session in tmux with the name of file as session name, cd into the directory of the file, and open it in Neovim 
 This one is working on my `special` use case but can give you inspiration to make something that feet your need.
