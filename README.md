@@ -11,20 +11,21 @@ This repo include the scripts i use to make [yazi](https://github.com/sxyazi/yaz
 
 The installation script will cover the installation of the program,
 adding it to `PATH` ( allowing system to use it) and creation of a shortcut to launch it with wezterm,
-_This script doesn't install the recommanded package like fzf zoxide_
+It can also install git-for-windows from github and make the `file` util available on `path`.
+It Also prompt to download the `preset` conf file provide by Yazi
+
+_This script doesn't install the recommanded package like fzf zoxide
 The icon is created With default wezterm path from `winget` installation, if you use a portable version adjust it
 
 ## 👷 Using the script
 
-Open powershell and run
+Open powershell and run:
 
 ```powershell
 iex (Invoke-WebRequest -Uri 'https://raw.githubusercontent.com/PaysanCorrezien/Yazi-Windows/master/Install.ps1' -UseBasicParsing).Content
 ```
 
 ** Always check script before running it from a random repo like mine **
-
-_Maybe adding the copy of the preset from [repo](https://github.com/sxyazi/yazi/tree/main/yazi-config/preset) would be good_
 
 # 🌟 Features enhancement
 

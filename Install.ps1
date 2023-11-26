@@ -134,6 +134,45 @@ function Create-WeztermYaziShortcut {
 
     Write-Host "Shortcut created at $shortcutPath"
 }
+#TODO: Adapt the first function to handle both case of Yazi and git
+function Install-GitForWindows {
+    param (
+        [string]$Repo = "git-for-windows/git",
+        [switch]$Force
+    )
+
+    $latestTag = Get-GithubRelease -Repo $Repo
+    if (-not $latestTag) {
+        Write-Error "Failed to get the latest release for $Repo."
+        return
+    }
+
+    $releaseUri = "https://api.github.com/repos/$Repo/releases/tags/$latestTag"
+    $releaseResponse = Invoke-RestMethod -Uri $releaseUri -Method Get -Headers @{ Accept = "application/vnd.github.v3+json" }
+
+    $installerAsset = $releaseResponse.assets | Where-Object { $_.name -like "*-64-bit.exe" } | Select-Object -First 1
+
+    if ($installerAsset) {
+        $tempPath = [System.IO.Path]::GetTempPath()
+        $installerPath = Join-Path $tempPath $installerAsset.name
+
+        Write-Host "Downloading Git installer: $($installerAsset.name)"
+        Invoke-WebRequest -Uri $installerAsset.browser_download_url -OutFile $installerPath
+
+        # Determine installation arguments based on -Force parameter
+        $installArgs = if ($Force) { "/VERYSILENT /NORESTART" } else { "" }
+
+        Start-Process -FilePath $installerPath -Args $installArgs -Wait -NoNewWindow
+
+        # Optionally, remove the installer after installation
+        Remove-Item -Path $installerPath
+
+        Write-Host "Git has been installed."
+    }
+    else {
+        Write-Error "No Git installer found in the latest release."
+    }
+}
 
 function Get-UserConfirmation {
     param (
@@ -150,6 +189,9 @@ function Get-UserConfirmation {
 $Repo = "sxyazi/yazi"
 $destinationPath = "$env:APPDATA\yazi\bin"
 
+# Define the destination directory for config files
+$configDir = "$env:APPDATA\yazi\config"
+
 # Check and create destination folder
 if (-not (Test-Path -Path $destinationPath)) {
     New-Item -ItemType Directory -Path $destinationPath | Out-Null
@@ -159,7 +201,7 @@ if (-not (Test-Path -Path $destinationPath)) {
 }
 
 # Installation Process (Get release, Download, Install)
-if ($Force -or (Get-UserConfirmation "Proceed with installation for $Repo? (Y/N), this will download the latest release of the app from github")) {
+if ($Force -or (Get-UserConfirmation "Proceed with installation for $Repo? , this will download the latest release of the app from github (Y/N)")) {
     $latestRelease = Get-GithubRelease -Repo $Repo
 
     if ($latestRelease) {
@@ -178,4 +220,42 @@ if ($latestRelease -and ($Force -or (Get-UserConfirmation "Do you want to add $d
 if ($Force -or (Get-UserConfirmation "Do you want to create a WezTerm Yazi shortcut on your desktop? (Y/N)")) {
     Create-WeztermYaziShortcut
 }
-Write-Host "You need to restart you shell to Access Yazi"
+
+# HACK: Until the file come with the install
+# Prompt for downloading and copying the preset files
+if ($Force -or (Get-UserConfirmation "Do you want to download and install the preset configuration files? If you already have a configuration set this will overide it (Y/N)")) {
+    # Ensure the config directory exists
+    if (-not (Test-Path -Path $configDir)) {
+        New-Item -ItemType Directory -Path $configDir | Out-Null
+        Write-Host "Config directory created: $configDir"
+    }
+
+    # Base URL for the raw content
+    $baseUrl = "https://raw.githubusercontent.com/sxyazi/yazi/main/yazi-config/preset/"
+
+    # Files to download
+    $filesToDownload = @("keymap.toml", "theme.toml", "yazi.toml")
+
+    # Download and save each file
+    foreach ($file in $filesToDownload) {
+        $url = $baseUrl + $file
+        $destPath = Join-Path $configDir $file
+        Invoke-WebRequest -Uri $url -OutFile $destPath
+        Write-Host "Downloaded $file to $destPath"
+    }
+}
+
+# Prompt for Git for Windows installation
+if ($Force -or (Get-UserConfirmation "Do you want to install Git for Windows? (Y/N)")) {
+    Install-GitForWindows -Force:$Force
+}
+
+# Prompt to add git /usr/bin to path
+if ($latestRelease -and ($Force -or (Get-UserConfirmation "Do you want to add Git Linux Tools to your environment path? (Y/N)"))) {
+    Add-FolderPathToEnvPath -folderPath "C:\Program Files\Git\usr\bin"
+    Write-Host "Git Tools were added to your environment path."
+}
+
+
+
+
