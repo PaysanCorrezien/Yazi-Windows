@@ -3,8 +3,8 @@ This repo include the scripts i use to make [yazi](https://github.com/sxyazi/yaz
 
 # 🔖 Prerequisite
 
-- File ( from git for mimetype) ! All is mentionned on the [Installation Guide](https://github.com/sxyazi/yazi/wiki/Windows-Installation-Guide)
-- Wezterm for terminal image preview : [wezterm](https://wezfurlong.org/wezterm/) 
+For the Yazi installer, nothing the script should handle everything
+If you wish to use my settings :
 - Pwsh aka Powershell Core or you will need to replace pwsh.exe by powershell.exe on every script
 
 # 🪄 Yazi Installation Script
@@ -13,6 +13,7 @@ The installation script will cover the installation of the program,
 adding it to `PATH` ( allowing system to use it) and creation of a shortcut to launch it with wezterm,
 It can also install git-for-windows from github and make the `file` util available on `path`.
 It Also prompt to download the `preset` conf file provide by Yazi
+And it Can Install wezterm from winget
 
 _This script doesn't install the recommanded package like fzf zoxide
 The icon is created With default wezterm path from `winget` installation, if you use a portable version adjust it
@@ -80,14 +81,3 @@ On my `keymap.toml` on `$env:APPDATA\yazi\config\` , on the keymap array at the 
   ''', desc= "Open File In TMUX EDITOR" },
 ```
 
-# Wezterm install
-
-To work with `Yazi` Wezterm is highly recommanded to get good image preview.
-
-## Basic install
-To install Wezterm with winget:
-
-```powershell
-winget install wez.wezterm
-```
-TODO: Nighty with Github to use latest features
