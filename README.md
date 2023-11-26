@@ -19,7 +19,7 @@ The icon is created With default wezterm path from `winget` installation, if you
 Open powershell and run
 
 ```powershell
-iex (Invoke-WebRequest -Uri 'https://raw.githubusercontent.com/PaysanCorrezien/Yazi-Windows/master/install.ps1' -UseBasicParsing).Content
+iex (Invoke-WebRequest -Uri 'https://raw.githubusercontent.com/PaysanCorrezien/Yazi-Windows/master/Install.ps1' -UseBasicParsing).Content
 ```
 
 ** Always check script before running it from a random repo like mine **
