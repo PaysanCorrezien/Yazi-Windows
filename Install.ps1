@@ -121,7 +121,7 @@ function Add-FolderPathToEnvPath {
 }
 function Create-WeztermYaziShortcut {
     $desktopPath = [System.Environment]::GetFolderPath('Desktop')
-    $shortcutPath = Join-Path $desktopPath "WezTerm Yazi.lnk"
+    $shortcutPath = Join-Path $desktopPath "Yazi.lnk"
 
     $WshShell = New-Object -ComObject WScript.Shell
     $Shortcut = $WshShell.CreateShortcut($shortcutPath)
@@ -171,6 +171,35 @@ function Install-GitForWindows {
     }
     else {
         Write-Error "No Git installer found in the latest release."
+    }
+}
+function Is-WingetAvailable {
+    try {
+        $null = winget --version
+        return $true
+    }
+    catch {
+        Write-Host "Winget is not available on this system."
+        return $false
+    }
+}
+
+# Install Wezterm
+function Install-Wezterm {
+    param (
+        [switch]$Force
+    )
+
+    if ($Force -or (Get-UserConfirmation "Do you want to install Wezterm? (Y/N)")) {
+        if (Is-WingetAvailable) {
+            try {
+                winget install wez.wezterm
+                Write-Host "Wezterm has been installed successfully."
+            }
+            catch {
+                Write-Error "Failed to install Wezterm. Error: $_"
+            }
+        }
     }
 }
 
@@ -256,6 +285,6 @@ if ($latestRelease -and ($Force -or (Get-UserConfirmation "Do you want to add Gi
     Write-Host "Git Tools were added to your environment path."
 }
 
-
-
-
+if ($Force -or (Get-UserConfirmation "Do you want to install Wezterm? (Y/N)")) {
+    Install-Wezterm -Force:$Force
+}
