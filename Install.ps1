@@ -105,7 +105,6 @@ function Get-AssetFromGitHubRelease
   exit 1
 }
 
-
 function DownloadAndExtract
 {
   param (
@@ -370,8 +369,6 @@ function Get-UserConfirmation
   return $userInput -eq 'Y' -or $userInput -eq 'y'
 }
 
-
-
 # Start of the program
 # user/appdata/local/ folder is more common for program, maybe change this ?
 $Repo = "sxyazi/yazi"
@@ -381,6 +378,7 @@ $destinationPath = "$env:APPDATA\yazi\bin"
 $configDir = "$env:APPDATA\yazi\config"
 
 # Check and create destination folder
+# Check and create destination folder
 if (-not (Test-Path -Path $destinationPath))
 {
   New-Item -ItemType Directory -Path $destinationPath | Out-Null
@@ -389,9 +387,18 @@ if (-not (Test-Path -Path $destinationPath))
 {
   Write-Host "Destination folder already exists: $destinationPath"
 }
-# Select one of the installation method
-# $choice = Read-Host "Select an installation method: 1. Scoop 2. github 3. Manual(build with rust)"
-$choice = READ-HOST "Select an installation method: 1. Scoop 2. github release, type either 1 or 2"
+
+# If -Force is used, skip the choice and go directly to GitHub installation
+if ($Force)
+{
+  Write-Host "Force flag detected. Proceeding with GitHub installation..."
+  $choice = 2
+} else
+{
+  # $choice = Read-Host "Select an installation method: 1. Scoop 2. GitHub release, type either 1 or 2"
+  $choice = Read-Host "Select an installation method: 1. Scoop 2. GitHub release, type either 1 or 2"
+}
+
 switch ($choice)
 {
   1
@@ -404,7 +411,7 @@ switch ($choice)
   {
     Write-Host "Installing from GitHub"
     # Installation Process (Get release, Download, Install)
-    if ($Force -or (Get-UserConfirmation "Proceed with installation for Yazi ? , this will download the latest release of the app from github (Y/N)"))
+    if ($Force -or (Get-UserConfirmation "Proceed with installation for Yazi? This will download the latest release of the app from GitHub (Y/N)"))
     {
       $latestRelease = Get-GithubRelease -Repo $Repo
 
@@ -434,12 +441,12 @@ switch ($choice)
   default
   {
     Write-Host "Invalid choice. Exiting."
-    return
+    exit 1
   }
 }
 
 # Prompt for adding to environment path
-if ($latestRelease -and ($Force -or (Get-UserConfirmation "Do you want to add $destinationPath to your environment path? (Y/N)")))
+if ($latestRelease -and ($Force -or (Get-UserConfirmation "Do you want to add '$destinationPath' to your environment path? (Y/N)")))
 {
   Add-FolderPathToEnvPath -folderPath $destinationPath
   Write-Host "$destinationPath has been added to your environment path."
@@ -452,7 +459,8 @@ if ($Force -or (Get-UserConfirmation "Do you want to create a WezTerm Yazi short
 
 # HACK: Until the file come with the install
 # Prompt for downloading and copying the preset files
-if ($Force -or (Get-UserConfirmation "Do you want to download and install the preset configuration files? If you already have a configuration set this will overide it (Y/N)"))
+if ($Force -or (Get-UserConfirmation "Do you want to download and install the preset configuration files? If you already have a configuration this will override it.
+This will copy 'https://raw.githubusercontent.com/sxyazi/yazi/main/yazi-config/preset/*' To '$env:APPDATA\yazi\config\' (Y/N)"))
 {
   # Ensure the config directory exists
   if (-not (Test-Path -Path $configDir))
