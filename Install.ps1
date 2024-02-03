@@ -353,8 +353,21 @@ function Get-UserConfirmation
   param (
     [string]$Message
   )
-  $userInput = Read-Host -Prompt $Message
-  return $userInput -eq 'Y'
+    
+  do
+  {
+    $userInput = Read-Host -Prompt "$Message"
+    # Treat Enter (empty input) as 'Y'
+    if (-not $userInput)
+    {
+      $userInput = 'Y'
+    }
+  }
+  # Loop until the user enters 'Y', 'y', 'N', or 'n'
+  until ($userInput -eq 'Y' -or $userInput -eq 'y' -or $userInput -eq 'N' -or $userInput -eq 'n')
+    
+  # Return $true if the input is 'Y' or 'y'; otherwise, return $false
+  return $userInput -eq 'Y' -or $userInput -eq 'y'
 }
 
 
@@ -464,24 +477,22 @@ if ($Force -or (Get-UserConfirmation "Do you want to download and install the pr
   }
 }
 
-# Prompt for Git for Windows installation
-if ($Force -or (Get-UserConfirmation "Do you want to install Git for Windows? (Y/N)"))
+
+# Prompt to add git /usr/bin to path
+if ($Force -or (Get-UserConfirmation "Do you want to install Git for Windows ? This will download the latest release from 'https://github.com/git-for-windows/git'
+which provides `file` that yazi require to detect mimetype. 
+This will launch Git setup and wait it proceed (Y/N)"))
 {
   Install-GitForWindows -Force:$Force
 }
 
-# Prompt to add git /usr/bin to path
-if ($latestRelease -and ($Force -or (Get-UserConfirmation "Do you want to add Git Linux Tools to your environment path? (Y/N)")))
-{
-  Add-FolderPathToEnvPath -folderPath "C:\Program Files\Git\usr\bin"
-  Write-Host "Git Tools were added to your environment path."
-}
-
-if ($Force -or (Get-UserConfirmation "Do you want to install Wezterm? (Y/N)"))
+if ($Force -or (Get-UserConfirmation "Do you want to install Wezterm?
+This will install wezterm via `winget` if winget is available (Y/N)"))
 {
   Install-Wezterm -Force:$Force
 }
-if ($Force -or (Get-UserConfirmation "Do you want to install the extras dependencies via scoop (you need to have scoop installed): this will execute 'scoop install unar jq poppler fd ripgrep fzf zoxide' ? (Y/N)"))
+if ($Force -or (Get-UserConfirmation "Do you want to install the extras dependencies via scoop (you need to have scoop installed):
+This will execute 'scoop install unar jq poppler fd ripgrep fzf zoxide' ? (Y/N)"))
 {
   InstallScoopExtras
 }
