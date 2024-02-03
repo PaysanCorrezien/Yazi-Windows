@@ -131,7 +131,7 @@ function Add-FolderPathToEnvPath
     $updatedPath = [System.Environment]::GetEnvironmentVariable("PATH", "User")
     if ($updatedPath -split ';' -contains $folderPath)
     {
-      Write-Host "Folder path added to PATH successfully: $folderPath"
+      Write-Host "Folder path added to User PATH successfully: $folderPath"
     } else
     {
       throw "Failed to add folder path to PATH"
@@ -226,9 +226,11 @@ function Install-Wezterm
 
   if (Is-WingetAvailable)
   {
+    $command = "winget install wez.wezterm"
+    Write-Host "Running command: $command"
     try
     {
-      winget install wez.wezterm
+      Invoke-Expression $command
       Write-Host "Wezterm has been installed successfully."
     } catch
     {
@@ -265,18 +267,52 @@ if (-not (Test-Path -Path $destinationPath))
 {
   Write-Host "Destination folder already exists: $destinationPath"
 }
-
-# Installation Process (Get release, Download, Install)
-if ($Force -or (Get-UserConfirmation "Proceed with installation for Yazi ? , this will download the latest release of the app from github (Y/N)"))
+# Select one of the installation method
+# $choice = Read-Host "Select an installation method: 1. Scoop 2. github 3. Manual(build with rust)"
+$choice = READ-HOST "Select an installation method: 1. Scoop 2. github release, type either 1 or 2"
+switch ($choice)
 {
-  $latestRelease = Get-GithubRelease -Repo $Repo
+  1
+  {
+    $command = "scoop install yazi"
+    Write-Host "Running command: $command"
+    Invoke-Expression $command
+  }
+  2
+  {
+    Write-Host "Installing from GitHub"
+    # Installation Process (Get release, Download, Install)
+    if ($Force -or (Get-UserConfirmation "Proceed with installation for Yazi ? , this will download the latest release of the app from github (Y/N)"))
+    {
+      $latestRelease = Get-GithubRelease -Repo $Repo
 
-  if ($latestRelease)
+      if ($latestRelease)
+      {
+        Get-GithubRepo -Repo $Repo -TagName $latestRelease -DestinationPath $destinationPath -Force:$Force
+      } else
+      {
+        Write-Host "No latest release found for $Repo."
+      }
+    }
+  }
+  # 3
+  # {
+  #   Write-Host "Manual installation is not yet supported."
+  #   # TODO: provide a way to choose repo destination and clone it
+  #   # clone the repo
+  #   # maybe with a way to pass build args ?
+  #   # cd to the repo, and build the project
+  #   #
+  #   # TODO:
+  #   # Allow to choose branch, pr commit with git arguments
+  #   # and make this even better with global powershell arg like -build to launch this directly to not run the rest of GUI ?
+  #   # to be able to build nightly quickly
+  #
+  # }
+  default
   {
-    Get-GithubRepo -Repo $Repo -TagName $latestRelease -DestinationPath $destinationPath -Force:$Force
-  } else
-  {
-    Write-Host "No latest release found for $Repo."
+    Write-Host "Invalid choice. Exiting."
+    return
   }
 }
 
