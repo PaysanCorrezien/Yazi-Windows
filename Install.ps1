@@ -33,6 +33,139 @@ function Get-GithubRelease
   }
 }
 
+function Get-PlatformAndArchitecture
+{
+  Write-Host "Determining system platform and architecture..."
+  $os = [System.Environment]::OSVersion.Platform
+  $arch = [System.Runtime.InteropServices.RuntimeInformation]::OSArchitecture
+
+  Write-Host "OS Platform: $os, Architecture: $arch"
+
+  $platform = switch ($os)
+  {
+    'Win32NT'
+    { 'pc-windows-msvc' 
+    }
+    'Unix'
+    { 'unknown-linux-gnu' 
+    } # You might need to refine this for specific Unix variants
+    'MacOSX'
+    { 'apple-darwin' 
+    }
+    default
+    { $os.ToString().ToLower() 
+    } # Default case if it's a different/unknown platform
+  }
+
+  $architecture = switch ($arch)
+  {
+    'X64'
+    { 'x86_64' 
+    }
+    'Arm64'
+    { 'aarch64' 
+    }
+    default
+    { $arch.ToString().ToLower() 
+    } # Default case if it's a different/unknown architecture
+  }
+
+  Write-Host "Mapped Platform: $platform, Mapped Architecture: $architecture"
+  return @{ Platform = $platform; Architecture = $architecture }
+}
+
+function Get-AssetFromGitHubRelease
+{
+  param (
+    [string]$Repo,
+    [string]$TagName,
+    [PSCustomObject]$PlatformAndArchitecture
+  )
+
+  Write-Host "Requesting URL: https://api.github.com/repos/$Repo/releases/tags/$TagName"
+  $uri = "https://api.github.com/repos/$Repo/releases/tags/$TagName"
+  $response = Invoke-RestMethod -Uri $uri -Method Get -Headers @{ Accept = "application/vnd.github.v3+json" }
+  Write-Host "The following assets are available in the release: $($response.assets.name -join ', ')"
+
+  # Adjust the pattern to reflect the correct order
+  $pattern = "*$($PlatformAndArchitecture.Architecture)*$($PlatformAndArchitecture.Platform)*.zip"
+  Write-Host "Asset search pattern: $pattern"
+
+  foreach ($asset in $response.assets)
+  {
+    Write-Host "Checking asset: $($asset.name)"
+    if ($asset.name -like $pattern)
+    {
+      Write-Host "Asset found: $($asset.name)"
+      return $asset
+    }
+  }
+
+  Write-Host "No asset found matching the pattern: $pattern"
+  exit 1
+}
+
+
+function DownloadAndExtract
+{
+  param (
+    [PSCustomObject]$Asset,
+    [string]$DestinationPath
+  )
+
+  $tempPath = [System.IO.Path]::GetTempPath()
+  $tempFile = Join-Path $tempPath $Asset.name
+  $downloadUrl = $Asset.browser_download_url
+
+  Write-Host "Downloading ZIP to temporary folder: $tempFile"
+  Invoke-WebRequest -Uri $downloadUrl -OutFile $tempFile
+
+  $tempExtractionPath = New-Item -ItemType Directory -Path (Join-Path $tempPath ([System.IO.Path]::GetRandomFileName())) -Force
+  Write-Host "Extracting ZIP to temporary folder: $tempExtractionPath"
+  Expand-Archive -LiteralPath $tempFile -DestinationPath $tempExtractionPath -Force
+
+  # Attempt to get only content
+  $rootFolder = Get-ChildItem -Path $tempExtractionPath | Where-Object { $_.PSIsContainer } | Select-Object -First 1
+  if ($rootFolder)
+  {
+    Write-Host "Moving contents from $rootFolder to $DestinationPath"
+    Get-ChildItem -Path $rootFolder.FullName -Recurse | ForEach-Object {
+      $targetPath = Join-Path $DestinationPath $_.FullName.Substring($rootFolder.FullName.Length)
+      if (Test-Path $targetPath)
+      {
+        if (Test-Path $targetPath -PathType Container)
+        {
+          # Merge directory contents
+          Write-Host "Merging directory: $targetPath"
+          # No action needed, as sub-files/-directories will be handled individually
+        } else
+        {
+          # Overwrite file
+          Write-Host "Overwriting file: $targetPath"
+          Remove-Item $targetPath -Force
+        }
+      } else
+      {
+        $dirPath = [System.IO.Path]::GetDirectoryName($targetPath)
+        if (!(Test-Path $dirPath))
+        {
+          New-Item -ItemType Directory -Path $dirPath -Force | Out-Null
+        }
+      }
+      # Check if source is a directory, skip moving as its contents are handled individually
+      if (!(Test-Path $_.FullName -PathType Container))
+      {
+        Move-Item $_.FullName -Destination $targetPath -Force
+      }
+    }
+  }
+
+  Write-Host "Cleaning up temporary files."
+  Remove-Item -Path $tempFile
+  Remove-Item -Path $tempExtractionPath -Recurse -Force
+
+  return $DestinationPath
+}
 
 function Get-GithubRepo
 {
@@ -45,40 +178,16 @@ function Get-GithubRepo
 
   try
   {
-    $uri = "https://api.github.com/repos/$Repo/releases/tags/$TagName"
-    $response = Invoke-RestMethod -Uri $uri -Method Get -Headers @{ Accept = "application/vnd.github.v3+json" }
+    $PlatformAndArchitecture = Get-PlatformAndArchitecture
+    Write-Host "System platform and architecture detected: $($PlatformAndArchitecture.Platform), $($PlatformAndArchitecture.Architecture)"
 
-    $asset = $response.assets | Where-Object { $_.name -like "*$Platform*.zip" } | Select-Object -First 1
-
+    $asset = Get-AssetFromGitHubRelease -Repo $Repo -TagName $TagName -PlatformAndArchitecture $PlatformAndArchitecture
     if ($asset)
     {
-      $tempPath = [System.IO.Path]::GetTempPath()
-      $tempFile = Join-Path $tempPath $asset.name
-      $downloadUrl = $asset.browser_download_url
-
-      Write-Host "Downloading ZIP to temporary folder: $tempFile"
-      Invoke-WebRequest -Uri $downloadUrl -OutFile $tempFile
-
-      $tempExtractionPath = New-Item -ItemType Directory -Path (Join-Path $tempPath ([System.IO.Path]::GetRandomFileName())) -Force
-      Write-Host "Extracting ZIP to temporary folder: $tempExtractionPath"
-      Expand-Archive -LiteralPath $tempFile -DestinationPath $tempExtractionPath -Force
-
-      # Attempt to get only content
-      $rootFolder = Get-ChildItem -Path $tempExtractionPath | Where-Object { $_.PSIsContainer } | Select-Object -First 1
-      if ($rootFolder)
-      {
-        Write-Host "Moving contents from $rootFolder to $DestinationPath"
-        Get-ChildItem -Path $rootFolder.FullName -Recurse | Move-Item -Destination $DestinationPath -Force
-      }
-
-      Write-Host "Cleaning up temporary files."
-      Remove-Item -Path $tempFile
-      Remove-Item -Path $tempExtractionPath -Recurse -Force
-
-      return $DestinationPath
+      DownloadAndExtract -Asset $asset -DestinationPath $DestinationPath
     } else
     {
-      Write-Error "No downloadable ZIP asset found for $Platform platform in $Repo release $TagName"
+      Write-Error "No downloadable ZIP asset found for $($PlatformAndArchitecture.Platform) platform in $Repo release $TagName"
       return $null
     }
   } catch
