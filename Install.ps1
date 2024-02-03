@@ -88,7 +88,15 @@ function Get-GithubRepo
   }
 }
 
+function InstallScoopExtras
+{
 
+  # Install the optional dependencies (recommended):
+  $command = "scoop install unar jq poppler fd ripgrep fzf zoxide"
+  Write-Host "Running command: $command"
+  Invoke-Expression $command
+
+}
 
 function Add-FolderPathToEnvPath
 {
@@ -327,4 +335,8 @@ if ($latestRelease -and ($Force -or (Get-UserConfirmation "Do you want to add Gi
 if ($Force -or (Get-UserConfirmation "Do you want to install Wezterm? (Y/N)"))
 {
   Install-Wezterm -Force:$Force
+}
+if ($Force -or (Get-UserConfirmation "Do you want to install the extras dependencies via scoop (you need to have scoop installed): this will execute 'scoop install unar jq poppler fd ripgrep fzf zoxide' ? (Y/N)"))
+{
+  InstallScoopExtras
 }
